@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: csi-test
+spec:
+  containers:
+  - name: main
+    image: ubuntu:latest
+    args: [ "tail", "-f", "/dev/null" ]
+    volumeMounts:
+    - mountPath: /orig-share
+      name: share
+    - mountPath: /csi/home
+      name: csi-home
+    - mountPath: /csi/project
+      name: csi-project
+    - mountPath: /csi/scratch
+      name: csi-scratch
+  volumes:
+  - name: share
+    nfs:
+      path: /share1
+      server: 10.87.86.26
+      # 10.87.86.26 is dev
+      # 10.22.240.130 is int
+      # 10.13.105.122 is prod
+  - name: csi-home
+    persistentVolumeClaim:
+      claimName: csi-home-pvc
+  - name: csi-project
+    persistentVolumeClaim:
+      claimName: csi-project-pvc
+  - name: csi-scratch
+    persistentVolumeClaim:
+      claimName: csi-scratch-pvc

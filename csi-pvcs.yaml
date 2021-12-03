@@ -1,0 +1,40 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: csi-home-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: csi-filestore
+  resources:
+    requests:
+      storage: 2.5Ti
+  volumeName: csi-home-pv
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: csi-project-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: csi-filestore
+  resources:
+    requests:
+      storage: 2.5Ti
+  volumeName: csi-project-pv
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: csi-scratch-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: csi-filestore
+  resources:
+    requests:
+      storage: 2.5Ti
+  volumeName: csi-scratch-pv
+

@@ -4,7 +4,7 @@ csi-filestore-test
 Setup
 ------------------
 
-This is just a little exercise to test the CSI Filestore driver.
+Set up the underlying storage and StorageClass.
 
 1. Create a Filestore instance for each mountpoint you want (currently:
    `/home`, `/project`, `/scratch`).  We'll Terraform this later.  I
@@ -14,13 +14,18 @@ This is just a little exercise to test the CSI Filestore driver.
 
 3. Edit [csi-pvs.yaml](csi-pvs.yaml) and
    [csi-concurrent-pvs.yaml](csi-concurrent-pvs.yaml) replacing
-   volumeHandle and    volumeAttributes with the correct values for your
+   volumeHandle and volumeAttributes with the correct values for your
    instance.
    
 4. Create the `csi-test` namespace: `kubectl create ns csi-test`
    
+5. Create the `csi-filestore` storageClass: `kubectl apply -f csi-sc.yaml`.
+
+
 Basic functionality
 -------------------
+
+This is just a little exercise to test the CSI Filestore driver.
 
 1. Edit [csi-pod.yaml](csi-pod.yaml), replacing the NFS share details
    for the old filestore as necessary.

@@ -2,8 +2,8 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: csi-home-pvc
-  namespace: csi-test  
+  name: csi-concurrent-scratch-pvc1
+  namespace: csi-test
 spec:
   accessModes:
     - ReadWriteMany
@@ -11,12 +11,12 @@ spec:
   resources:
     requests:
       storage: 2.5Ti
-  volumeName: csi-home-pv
+  volumeName: csi-concurrent-scratch-pv1
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: csi-project-pvc
+  name: csi-concurrent-scratch-pvc2
   namespace: csi-test  
 spec:
   accessModes:
@@ -25,19 +25,5 @@ spec:
   resources:
     requests:
       storage: 2.5Ti
-  volumeName: csi-project-pv
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: csi-scratch-pvc
-  namespace: csi-test  
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: csi-filestore
-  resources:
-    requests:
-      storage: 2.5Ti
-  volumeName: csi-scratch-pv
+  volumeName: csi-concurrent-scratch-pv2
 

@@ -37,14 +37,15 @@ kubectl apply -f csi-pvcs.yaml
 kubectl apply -f csi-pod.yaml
 ```
    
-3. `kubectl exec` into the pod `csi-basic`, copy files to their new
-   destinations, or whatever else.
+3. `kubectl exec` into the pod `csi-basic` and copy files to their new
+   destinations, or whatever else.  This all works swimmingly.
 
 Concurrency
 -----------
 
 1. Delete the Basic functionality resources.  You shouldn't have to do
-   this, but here we are.
+   this, but I'm going to so that we have a minimal replication test for
+   the very surprising way this will fail.
 ```
 kubectl delete -n csi-test pod csi-basic
 kubectl delete -n csi-test pvc csi-home-pvc csi-project-pvc csi-scratch-pvc

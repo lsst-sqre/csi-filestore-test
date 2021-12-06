@@ -79,7 +79,11 @@ The error will look something like
   Warning  FailedMount  4s               kubelet            MountVolume.MountDevice failed for volume "csi-concurrent-scratch-pv1" : rpc error: code = DeadlineExceeded desc = context deadline exceeded
   Warning  FailedMount  2s (x2 over 3s)  kubelet            MountVolume.MountDevice failed for volume "csi-concurrent-scratch-pv1" : rpc error: code = Aborted desc = An operation with the given volume key modeInstance/us-central1-b/csi-scratch/csi_scratch already exists
 ```
-   
+
+It appears that the mere existence of multiple PV/PVC pairs pointing to
+the same underlying filestore will prevent the CSI driver from mounting
+any of those PVCs to any pod.
+
 5. Attempt to create the second pod and see what happens.  It too is going to get
    stuck in `ContainerCreating`:
 ```

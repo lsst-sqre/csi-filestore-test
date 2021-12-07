@@ -6,90 +6,176 @@ Setup
 
 Set up the underlying storage and StorageClass.
 
-1. Create a Filestore instance for each mountpoint you want (currently:
+1. Set your current working directory to the directory containing this
+   [README.md](README.md).
+
+2. Create a Filestore instance for each mountpoint you want (currently:
    `/home`, `/project`, `/scratch`).  We'll Terraform this later.  I
    called each one `csi-<name>` with share of `csi_<name>`.
    
-2. Capture the IP address for each filestore.
+3. Capture the IP address for each filestore.
 
-3. Edit [csi-pvs.yaml](csi-pvs.yaml) and
+4. Edit [csi-pvs.yaml](csi-pvs.yaml) and
    [csi-concurrent-pvs.yaml](csi-concurrent-pvs.yaml) replacing
    volumeHandle and volumeAttributes with the correct values for your
    instance.
    
-4. Create the `csi-test` namespace: `kubectl create ns csi-test`
+5. Create the `csi-test` namespace: `kubectl create ns csi-test`
    
-5. Create the `csi-filestore` storageClass: `kubectl apply -f csi-sc.yaml`.
+6. Create the `csi-filestore` storageClass: `kubectl apply -f csi-sc.yaml`.
 
+These resources will not need to be deleted.  When we start using
+resources that need cleaning up, we're going to name them all things
+starting with `csi` so that we can clean them up with a simple shell
+loop.  Obviously, pick something else if you have resources you want to
+keep whose names start with `csi`.
 
 Basic functionality
 -------------------
 
 This is just a little exercise to test the CSI Filestore driver.
 
-1. Edit [csi-pod.yaml](csi-pod.yaml), replacing the NFS share details
+1. Set your current working directory to the directory containing this
+   [README.md](README.md).
+
+2. Edit [csi-pod.yaml](csi-pod.yaml), replacing the NFS share details
    for the old filestore as necessary.
    
-2. Create the PVs, the PVCs, and then the Pod
+3. Create the PVs, the PVCs, and then the Pod
 ```
 kubectl apply -f csi-pvs.yaml
 kubectl apply -f csi-pvcs.yaml	
-kubectl apply -f csi-pod.yaml
+kubectl apply -f csi-basic-pod.yaml
 ```
    
-3. `kubectl exec` into the pod `csi-basic` and copy files to their new
-   destinations, or whatever else.  This all works swimmingly.
+4. `kubectl exec` into the pod `csi-basic-pod` and copy files to their new
+   destinations, or whatever else.  For example:
+```
+for i in home project ; do time (cp -a /orig-share/$i/* /csi/$i/ ; sync); done
+```
+   This all works swimmingly.
+
+Cleaning up resources
+---------------------
+
+Whenever you want to clear the resources, assuming that `csi-test`
+contains all your namespaced resources, and that only your testing PVs'
+names begin with `csi`:
+
+```
+for i in pod pvc pv ; do if [ "${i}" = "pv" ]; then \
+    ns="" ; else ns=" -n csi-test" ; \
+fi ; 
+kubectl get ${i}${ns} | grep ^csi | cut -d ' ' -f 1 \
+    | xargs kubectl delete ${i}${ns} ; done
+```
+
 
 Concurrency
 -----------
 
-1. Delete the Basic functionality resources.  You shouldn't have to do
+1. Set your current working directory to the directory containing this
+   [README.md](README.md).
+
+2. Delete the Basic functionality resources.  You shouldn't have to do
    this, but I'm going to so that we have a minimal replication test for
-   the very surprising way this will fail.
+   the very surprising way this will fail.  See above.
+
+3. Create two concurrent sets of resources and see that both pods come
+   up in `Running` state:
 ```
-kubectl delete -n csi-test pod csi-basic
-kubectl delete -n csi-test pvc csi-home-pvc csi-project-pvc csi-scratch-pvc
-kubectl delete pv csi-home-pv csi-project-pv csi-scratch-pv
-```
-   
-2. Create the PVs for the concurrency test and see that they are created and
-   in `Available` state:
-```
-kubectl apply -f csi-concurrent-pvs.yaml
-kubectl get pv
+for i in 1 2; do
+    kubectl apply -f csi-concurrent-pv${i}.yaml
+	sleep 1
+    kubectl apply -f csi-concurrent-pvc${i}.yaml
+	sleep 1
+    kubectl apply -f csi-concurrent-pod${i}.yaml
+done
+sleep 30
+kubectl get pods
 ```
 
-3. Create the PVCs for the concurrency test and see that they are created and
-   in `Bound` state, and that the PVs are now `Bound` as well:
+4. If you like, set up a job in each container to verify that writes are
+   working.  Exec into each of `csi-concurrent-pod1` and
+   `csi-concurrent-pod2` and run something like
 ```
-kubectl apply -f csi-concurrent-pvcs.yaml
-kubectl get -n csi-test pvc
-kubectl get pv
+while : ; do 
+    txt="$(date -Ins) $(hostname)"; \
+	echo $txt >> /csi/scratch/shared-write.txt; \
+	sleep 10; \
+done
+```
+After that runs a bit you can:
+```
+kubectl exec -t csi-concurrent-pod1 -- cat /csi/scratch/shared-write.txt
+```
+and validate that you get interleaved output as you would expect.
+
+5. Create a PV/PVC pair for the third pod and verify that the PV and PVC
+are bound to one another.
+```
+kubectl apply -f csi-concurrent-pv3.yaml
+sleep 1
+kubectl apply -f csi-concurrent-pvc3.yaml
+sleep 5
+kubectl get pv csi-concurrent-scratch-pv3
+kubectl get pvc csi-concurrent-scratch-pvc3
 ```
 
-4. Create the first pod for the concurrency test.  Be amazed that it does not start.
+6. Attempt to create the third pod for the concurrency test.  It will
+fail to start:
 ```
-kubectl apply -f csi-concurrent1-pod.yaml
-sleep 200
-kubectl get -n csi-test pod csi-concurrent1
+kubectl apply -f csi-concurrent-pod3.yaml
+sleep 30
+kubectl describe -n csi-test pod csi-concurrent-pod3
 ```
 
 The error will look something like
 
 ```
-  Warning  FailedMount  4s               kubelet            MountVolume.MountDevice failed for volume "csi-concurrent-scratch-pv1" : rpc error: code = DeadlineExceeded desc = context deadline exceeded
-  Warning  FailedMount  2s (x2 over 3s)  kubelet            MountVolume.MountDevice failed for volume "csi-concurrent-scratch-pv1" : rpc error: code = Aborted desc = An operation with the given volume key modeInstance/us-central1-b/csi-scratch/csi_scratch already exists
+  Warning  FailedMount  6s (x7 over 38s)  kubelet            MountVolume.SetUp failed for volume "csi-concurrent-scratch-pv3" : rpc error: code = Internal desc = mount "/var/lib/kubelet/pods/74205c3e-f57c-4bf7-b57f-6a64db788e02/volumes/kubernetes.io~csi/csi-concurrent-scratch-pv3/mount" failed: mount failed: exit status 32
+Mounting command: mount
+Mounting arguments: -t nfs -o bind /var/lib/kubelet/plugins/kubernetes.io/csi/pv/csi-concurrent-scratch-pv3/globalmount /var/lib/kubelet/pods/74205c3e-f57c-4bf7-b57f-6a64db788e02/volumes/kubernetes.io~csi/csi-concurrent-scratch-pv3/mount
+Output: mount: special device /var/lib/kubelet/plugins/kubernetes.io/csi/pv/csi-concurrent-scratch-pv3/globalmount does not exist
 ```
 
-It appears that the mere existence of multiple PV/PVC pairs pointing to
-the same underlying filestore will prevent the CSI driver from mounting
-any of those PVCs to any pod.
+7. Scratch your head in bafflement.
 
-5. Attempt to create the second pod and see what happens.  It too is going to get
-   stuck in `ContainerCreating`:
+8. Delete pod1 and its PVC, and then try restarting pod3.  This too will
+fail:
 ```
-kubectl apply -f csi-concurrent2-pod.yaml
-kubectl get pod -n csi-test csi-concurrent2
+kubectl delete pod csi-concurrent-pod1
+kubectl delete pvc csi-concurrent-scratch-pvc1
 ```
-   
-6. Weep bitter tears.
+wait until the pod and PVC are gone.  Then:
+```
+kubectl delete pod csi-concurrent-pod3
+kubectl apply -f csi-concurrent-pod3.yaml
+```
+The error message will be similar.
+
+9. Delete pod1's PV.  This time creating pod3 will work fine.  This
+shows that it's the existence of the third PersistentVolume pointing to
+the same filestore that causes trouble.  NOPE I'm WRONG.
+```
+kubectl delete pv csi-concurrent-scratch-pv1
+kubectl delete pod csi-concurrent-pod3
+kubectl apply -f csi-concurrent-pod3.yaml
+```
+WOMP WOMP.  This time it failed.
+
+10.  Had that worked repeatably, exec into pod3 if you like, and
+```
+while : ; do 
+    txt="$(date -Ins) $(hostname)"; \
+	echo $txt >> /csi/scratch/shared-write.txt; \
+	sleep 10; \
+done
+```
+Then 
+```
+kubectl exec -t csi-concurrent-pod2 -- cat /csi/scratch/shared-write.txt
+```
+and see that the end of the file shows pods 2 and 3 writing happily away.
+
+11.  Weep bitter tears.

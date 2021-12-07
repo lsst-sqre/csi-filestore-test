@@ -1,0 +1,14 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: csi-concurrent-scratch-pvc2
+  namespace: csi-test  
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: csi-filestore
+  resources:
+    requests:
+      storage: 2.5Ti
+  volumeName: csi-concurrent-scratch-pv2
+

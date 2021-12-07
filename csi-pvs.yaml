@@ -11,8 +11,7 @@ spec:
     storage: 2.5Ti
   accessModes:
     - ReadWriteMany
-  # Don't worry, this doesn't delete the underlying NFS data
-  persistentVolumeReclaimPolicy: Delete
+  persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   csi:
     driver: filestore.csi.storage.gke.io
@@ -34,8 +33,7 @@ spec:
     storage: 2.5Ti
   accessModes:
     - ReadWriteMany
-  # Don't worry, this doesn't delete the underlying NFS data
-  persistentVolumeReclaimPolicy: Delete
+  persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   csi:
     driver: filestore.csi.storage.gke.io
@@ -57,8 +55,7 @@ spec:
     storage: 2.5Ti
   accessModes:
     - ReadWriteMany
-  # Don't worry, this doesn't delete the underlying NFS data
-  persistentVolumeReclaimPolicy: Delete
+  persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   csi:
     driver: filestore.csi.storage.gke.io

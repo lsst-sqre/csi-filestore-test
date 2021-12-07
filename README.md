@@ -82,13 +82,14 @@ Concurrency
    the very surprising way this will fail.  See above.
 
 3. Create two concurrent sets of resources and see that both pods come
-   up in `Running` state:
+   up in `Running` state (WOMP WOMP after a failure, they may not; I always
+   get at least one so far, though).:
 ```
 for i in 1 2; do
     kubectl apply -f csi-concurrent-pv${i}.yaml
-	sleep 1
+    sleep 1
     kubectl apply -f csi-concurrent-pvc${i}.yaml
-	sleep 1
+    sleep 1
     kubectl apply -f csi-concurrent-pod${i}.yaml
 done
 sleep 30
@@ -156,13 +157,13 @@ The error message will be similar.
 
 9. Delete pod1's PV.  This time creating pod3 will work fine.  This
 shows that it's the existence of the third PersistentVolume pointing to
-the same filestore that causes trouble.  NOPE I'm WRONG.
+the same filestore that causes trouble.  (NOPE I'M WRONG.)
 ```
 kubectl delete pv csi-concurrent-scratch-pv1
 kubectl delete pod csi-concurrent-pod3
 kubectl apply -f csi-concurrent-pod3.yaml
 ```
-WOMP WOMP.  This time it failed.
+(WOMP WOMP.  This time it failed.)
 
 10.  Had that worked repeatably, exec into pod3 if you like, and
 ```
